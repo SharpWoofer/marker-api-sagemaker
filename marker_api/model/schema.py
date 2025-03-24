@@ -53,7 +53,7 @@ class PDFConversionResult(BaseModel):
 
 class ConversionResponse(BaseModel):
     status: str
-    result: Optional[PDFConversionResult] = None
+    result: Optional[str] = None
 
 
 class CeleryTaskResponse(BaseModel):

@@ -19,10 +19,10 @@ python-multipart = "^0.0.12"
 redis = "^5.1.1"
 requests = "^2.32.3"
 rich = "^13.9.2"
-marker-pdf = "^0.2.17"
+boto3 = "^1.37.16"
+marker-pdf = {git = "https://github.com/SharpWoofer/marker-sagemaker.git", extras = ["full"]}
 pynvml = "^11.5.3"
 art = "^6.3"
-gradio = "^5.1.0"
 
 
 

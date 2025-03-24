@@ -1,7 +1,7 @@
 from celery import Task
 from marker_api.celery_worker import celery_app
 from marker.convert import convert_single_pdf
-from marker.models import load_all_models
+# from marker.models import load_all_models
 import io
 import logging
 from marker_api.utils import process_image_to_base64
@@ -14,9 +14,9 @@ model_list = None
 
 @worker_process_init.connect
 def initialize_models(**kwargs):
-    global model_list
+    # global model_list
     if not model_list:
-        model_list = load_all_models()
+        # model_list = load_all_models()
         print("Models loaded at worker startup")
 
 

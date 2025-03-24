@@ -14,7 +14,7 @@ from marker_api.celery_routes import (
     celery_batch_convert,
     celery_batch_result,
 )
-import gradio as gr
+# import gradio as gr
 from marker_api.demo import demo_ui
 from marker_api.model.schema import (
     BatchConversionResponse,
@@ -101,7 +101,7 @@ def setup_routes(app: FastAPI, celery_live: bool):
         logger.info("Adding real-time conversion route")
     else:
         logger.warning("Celery routes not added as Celery is not alive")
-    app = gr.mount_gradio_app(app, demo_ui, path="")
+    # app = gr.mount_gradio_app(app, demo_ui, path="")
 
 
 def parse_args():
