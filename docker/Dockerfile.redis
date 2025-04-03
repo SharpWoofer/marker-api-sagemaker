@@ -1,0 +1,16 @@
+FROM redis:7.2.4-alpine
+
+# Install Node.js for our health check server and proxy
+RUN apk add --update nodejs npm
+
+# Create app directory
+WORKDIR /app
+
+# Copy the health check server file
+COPY scripts/server_for_redis.js /app/
+
+# Only expose port 3000 (this will handle both Redis and HTTP traffic)
+EXPOSE 3000
+
+# Run the server directly (no need for start.sh)
+CMD ["node", "server_for_redis.js"]

@@ -1,0 +1,18 @@
+# Dockerfile.flower
+FROM marker-api-cpu-image
+
+# Install requirements
+RUN pip install flower flask
+
+# Copy the entrypoint script
+COPY scripts/flower-entrypoint.sh /flower-entrypoint.sh
+RUN chmod +x /flower-entrypoint.sh
+
+# Set working directory
+WORKDIR /app
+
+# Expose port 3000 for the health check
+EXPOSE 3000
+
+# Set the entrypoint
+ENTRYPOINT ["/flower-entrypoint.sh"]

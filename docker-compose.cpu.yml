@@ -3,27 +3,26 @@ version: "3.8"
 services:
   celery_worker:
     build:
-      context: .  # Keep the build context as the root directory
-      dockerfile: docker/Dockerfile.cpu.distributed-server  # Specify the new path to the CPU Dockerfile
+      context: .
+      dockerfile: docker/Dockerfile.cpu.distributed-server
     image: marker-api-cpu-image
-    command: celery -A marker_api.celery_worker.celery_app worker --pool=solo -n worker_primary --loglevel=info
+    # Change pool type and add concurrency
+    command: celery -A marker_api.celery_worker.celery_app worker --pool=prefork --concurrency=4 -n worker_primary@%h --loglevel=info
     volumes:
       - .:/app
     environment:
       - REDIS_HOST=${REDIS_HOST}
-    links:
-      - redis
     depends_on:
       - redis
 
   app:
     container_name: marker-api-cpu
-    image: marker-api-cpu-image 
+    image: marker-api-cpu-image
     command: python distributed_server.py --host 0.0.0.0 --port 8080
     environment:
       - ENV=production
     ports:
-      - "8080:8080"
+      - "8081:8080"
     volumes:
       - .:/app
     depends_on:
@@ -35,7 +34,6 @@ services:
     image: redis:7.2.4-alpine
     ports:
       - "6379:6379"
-
 
   flower:
     container_name: flower_cpu

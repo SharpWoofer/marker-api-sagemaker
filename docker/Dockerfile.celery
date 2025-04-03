@@ -16,11 +16,18 @@ WORKDIR /app
 # Copy the project files into the Docker image
 COPY ../ ./
 
+# Install Flask for the health check endpoint
+RUN pip install flask
+
 # Install Python dependencies
 RUN pip install --no-cache-dir -e .
 
-# RUN python -c 'from marker.models import load_all_models; load_all_models()'
-
+# Expose port 8080 for the health check
 EXPOSE 8080
 
-CMD ["python", "distributed_server.py", "--host", "0.0.0.0", "--port", "8080"]
+# Set environment variables
+ENV REDIS_HOST=service-redis-084qf-health
+ENV REDIS_PORT=3000
+
+# Run the health check server which also starts the Celery worker
+CMD ["python", "scripts/celery_health_check.py"]

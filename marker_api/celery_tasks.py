@@ -1,23 +1,22 @@
 from celery import Task
 from marker_api.celery_worker import celery_app
-from marker.convert import convert_single_pdf
-# from marker.models import load_all_models
 import io
 import logging
+import os
+import tempfile
+from pathlib import Path
+import asyncio
 from marker_api.utils import process_image_to_base64
 from celery.signals import worker_process_init
 
-logger = logging.getLogger(__name__)
+from server import process_document
 
-model_list = None
+logger = logging.getLogger(__name__)
 
 
 @worker_process_init.connect
 def initialize_models(**kwargs):
-    # global model_list
-    if not model_list:
-        # model_list = load_all_models()
-        print("Models loaded at worker startup")
+    print("Worker process initialized")
 
 
 class PDFConversionTask(Task):
@@ -27,44 +26,48 @@ class PDFConversionTask(Task):
         super().__init__()
 
     def __call__(self, *args, **kwargs):
-        # Use the global model_list initialized at worker startup
         return self.run(*args, **kwargs)
 
 
 @celery_app.task(
     ignore_result=False, bind=True, base=PDFConversionTask, name="convert_pdf"
 )
-def convert_pdf_to_markdown(self, filename, pdf_content):
-    pdf_file = io.BytesIO(pdf_content)
-    markdown_text, images, metadata = convert_single_pdf(pdf_file, model_list)
-    image_data = {}
-    for i, (img_filename, image) in enumerate(images.items()):
-        logger.debug(f"Processing image {img_filename}")
-        image_base64 = process_image_to_base64(image, img_filename)
-        image_data[img_filename] = image_base64
-
-    return {
-        "filename": filename,
-        "markdown": markdown_text,
-        "metadata": metadata,
-        "images": image_data,
-        "status": "ok",
-    }
-
-
-# @celery_app.task(
-#     ignore_result=False, bind=True, base=PDFConversionTask, name="process_batch"
-# )
-# def process_batch(self, batch_data):
-#     results = []
-#     for filename, pdf_content in batch_data:
-#         try:
-#             result = convert_pdf_to_markdown(filename, pdf_content)
-#             results.append(result)
-#         except Exception as e:
-#             logger.error(f"Error processing {filename}: {str(e)}")
-#             results.append({"filename": filename, "status": "Error", "error": str(e)})
-#     return results
+def convert_document_to_markdown(self, filename, file_content):
+    try:
+        # Extract file extension from the filename
+        _, file_extension = os.path.splitext(filename)
+        
+        # Save content to a temporary file
+        temp_file = tempfile.NamedTemporaryFile(suffix=file_extension, delete=False)
+        temp_file_path = temp_file.name
+        temp_file.close()
+        
+        with open(temp_file_path, 'wb') as f:
+            f.write(file_content)
+        
+        # Process the document using your async function
+        markdown_text = asyncio.run(process_document(Path(temp_file_path)))
+        
+        return {
+            "filename": filename,
+            "markdown": markdown_text,  # Use a consistent field name
+            "status": "ok",
+        }
+    
+    except Exception as e:
+        logger.error(f"Error processing {filename}: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return {
+            "filename": filename,
+            "status": "Error",
+            "error": str(e)
+        }
+    
+    finally:
+        # Clean up temporary file
+        if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
 
 
 @celery_app.task(
@@ -73,9 +76,10 @@ def convert_pdf_to_markdown(self, filename, pdf_content):
 def process_batch(self, batch_data):
     results = []
     total = len(batch_data)
-    for i, (filename, pdf_content) in enumerate(batch_data, start=1):
+    for i, (filename, file_content) in enumerate(batch_data, start=1):
         try:
-            result = convert_pdf_to_markdown(filename, pdf_content)
+            # Call the task directly with self
+            result = convert_document_to_markdown(self, filename, file_content)
             results.append(result)
         except Exception as e:
             logger.error(f"Error processing {filename}: {str(e)}")

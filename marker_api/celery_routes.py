@@ -1,7 +1,7 @@
 from fastapi import UploadFile, File
 from celery.result import AsyncResult
 from fastapi.responses import JSONResponse
-from marker_api.celery_tasks import convert_pdf_to_markdown, process_batch
+from marker_api.celery_tasks import convert_document_to_markdown, process_batch
 import logging
 import asyncio
 from typing import List
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 async def celery_convert_pdf(pdf_file: UploadFile = File(...)):
     contents = await pdf_file.read()
-    task_id = convert_pdf_to_markdown.delay(pdf_file.filename, contents)
+    task_id = convert_document_to_markdown.delay(pdf_file.filename, contents)
     return {"task_id": str(task_id), "status": "Processing"}
 
 
@@ -31,16 +31,33 @@ async def celery_offline_root():
 
 async def celery_convert_pdf_sync(pdf_file: UploadFile = File(...)):
     contents = await pdf_file.read()
-    task = convert_pdf_to_markdown.delay(pdf_file.filename, contents)
-    result = task.get(timeout=600)  # 10-minute timeout
-    return {"status": "Success", "result": result}
+    task = convert_document_to_markdown.delay(pdf_file.filename, contents)
+    try:
+        result = task.get(timeout=600)  # 10-minute timeout
+        # If result is a dict with status field
+        if isinstance(result, dict) and 'status' in result:
+            # If status is ok, return the markdown
+            if result['status'] == 'ok':
+                return {"status": "Success", "result": result.get('markdown', '')}
+            # If status is Error, propagate the error
+            else:
+                return {"status": "Error", "result": result.get('error', 'Unknown error')}
+        # If result is just a string
+        elif isinstance(result, str):
+            return {"status": "Success", "result": result}
+        # If result is some other structure
+        else:
+            return {"status": "Success", "result": result}
+    except Exception as e:
+        logger.error(f"Error processing {pdf_file.filename}: {str(e)}")
+        return {"status": "Error", "result": f"Failed to process document: {str(e)}"}
 
 
 async def celery_convert_pdf_concurrent_await(pdf_file: UploadFile = File(...)):
     contents = await pdf_file.read()
 
     # Start the Celery task
-    task = convert_pdf_to_markdown.delay(pdf_file.filename, contents)
+    task = convert_document_to_markdown.delay(pdf_file.filename, contents)
 
     # Define an asynchronous function to check task status
     async def check_task_status():

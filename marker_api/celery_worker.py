@@ -1,21 +1,30 @@
 import os
 from celery import Celery
-from dotenv import load_dotenv
-import multiprocessing
+import logging
 
-multiprocessing.set_start_method("spawn")
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-load_dotenv(".env")
+# Get Redis host
+redis_host = os.environ.get('REDIS_HOST', 'service-redis-084qf-health')
+redis_port = os.environ.get('REDIS_PORT', '3000')
+
+logger.info(f"Connecting to Redis at {redis_host}:{redis_port}")
+
+broker_url = f"redis://{redis_host}:{redis_port}/0"
+backend_url = f"redis://{redis_host}:{redis_port}/0"
+
+logger.info(f"Broker URL: {broker_url}")
 
 celery_app = Celery(
     "celery_app",
-    broker=os.environ.get("REDIS_HOST", "redis://localhost:6379/0"),
-    backend=os.environ.get("REDIS_HOST", "redis://localhost:6379/0"),
+    broker=broker_url,
+    backend=backend_url,
     include=["marker_api.celery_tasks"],
 )
 
-
 @celery_app.task(name="celery.ping")
 def ping():
-    print("Ping task received!")  # or use a logger
+    logger.info("Ping task received!")
     return "pong"

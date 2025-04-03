@@ -35,7 +35,7 @@ configure_logging()
 logger = logging.getLogger(__name__)
 
 # Global variable to hold model list
-model_list = None
+# model_list = None
 
 
 # Event that runs on startup to load all models
@@ -187,7 +187,7 @@ async def convert_document_to_markdown(document_file: UploadFile):
 
 # # Endpoint to convert a single PDF to markdown
 # @app.post("/convert", response_model=ConversionResponse)
-# async def convert_pdf_to_markdown(pdf_file: UploadFile):
+# async def convert_document_to_markdown(pdf_file: UploadFile):
 #     """
 #     Endpoint to convert a single PDF to markdown.
 #     """
