@@ -1,0 +1,26 @@
+#redis
+#!/bin/sh
+
+# download AWS credentials from your GeneXis project on the Profile page
+export AWS_ACCESS_KEY_ID=
+export AWS_SECRET_ACCESS_KEY=
+
+# login to ECR (requires both the AWS CLI and docker installed)
+if aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 503561440800.dkr.ecr.ap-southeast-1.amazonaws.com; then
+
+  echo 'login successful!'
+  
+  # this docker build command can be commented out if you have previously built a docker image with the tag 'latest'
+  docker build -f docker/Dockerfile.redis -t redis-084qf .
+
+  # this tags the image redis-084qf to the remote ECR with the tag redis-7.2.4-alpine
+  docker tag redis-084qf:latest 503561440800.dkr.ecr.ap-southeast-1.amazonaws.com/redis-084qf:redis-7.2.4-alpine
+
+  # perform the push to the ECR with the image tag redis:7.2.4-alpine that was set above
+  docker push 503561440800.dkr.ecr.ap-southeast-1.amazonaws.com/redis-084qf:redis-7.2.4-alpine
+  
+else
+
+  echo 'Error with logging in to AWS ECR. Please check your credentials and ensure that Docker is running'
+
+fi
