@@ -36,8 +36,7 @@ async def process_document(file_path: Path) -> str:
             "output_format": "markdown",
             "use_llm": True,
             "disable_image_extraction": False,
-            "process_images_with_llm": True,
-            "llm_service": "marker.services.openrouter.OpenRouterService",
+            "llm_service": "marker.services.custom.SagemakerService",
             "aws_access_key_id": os.environ['SAGEMAKER_AWS_ACCESS_KEY_ID'],
             "aws_secret_access_key": os.environ['SAGEMAKER_AWS_SECRET_ACCESS_KEY'],
         }
@@ -66,37 +65,37 @@ async def process_document(file_path: Path) -> str:
         if images:
             logging.info(f"Images structure: {str(images)[:200]}...")  # Print first 200 chars to see structure
         
-        # Post-process to handle images that weren't processed by the LLM
-        if "![]" in markdown_text:
-            # Find all image references in the markdown
-            image_pattern = re.compile(r'!\[\]\(([^)]+\.(jpeg|jpg|png))\)')
+        # # Post-process to handle images that weren't processed by the LLM
+        # if "![]" in markdown_text:
+        #     # Find all image references in the markdown
+        #     image_pattern = re.compile(r'!\[\]\(([^)]+\.(jpeg|jpg|png))\)')
             
-            # Process each image match
-            for match in image_pattern.finditer(markdown_text):
-                image_path = match.group(1)
-                logging.info(f"Found image reference: {image_path}")
+        #     # Process each image match
+        #     for match in image_pattern.finditer(markdown_text):
+        #         image_path = match.group(1)
+        #         logging.info(f"Found image reference: {image_path}")
                 
-                try:
-                    # Try to find the image in the images dictionary
-                    if image_path in images and isinstance(images[image_path], PIL.Image.Image):
-                        img = images[image_path]
-                        logging.info(f"Found image for {image_path}, processing with OpenRouter directly")
-                        description = await process_image_direct(
-                            img,
-                            "Describe this image in detail. Focus on both visual elements and any text visible in the image."
-                        )
+        #         try:
+        #             # Try to find the image in the images dictionary
+        #             if image_path in images and isinstance(images[image_path], PIL.Image.Image):
+        #                 img = images[image_path]
+        #                 logging.info(f"Found image for {image_path}, processing with OpenRouter directly")
+        #                 description = await process_image_direct(
+        #                     img,
+        #                     "Describe this image in detail. Focus on both visual elements and any text visible in the image."
+        #                 )
                         
-                        # Replace the placeholder with the image plus description
-                        # short_alt = "Image: " + description.split(".")[0] # Just use the first sentence for alt text
-                        replacement = f"Image ({image_path})\n> Full image description: {description}\n"
-                        markdown_text = markdown_text.replace(match.group(0), replacement)
-                        logging.info(f"Added description for {image_path}")
-                    else:
-                        logging.warning(f"Could not find valid image for {image_path}")
+        #                 # Replace the placeholder with the image plus description
+        #                 # short_alt = "Image: " + description.split(".")[0] # Just use the first sentence for alt text
+        #                 replacement = f"Image ({image_path})\n> Full image description: {description}\n"
+        #                 markdown_text = markdown_text.replace(match.group(0), replacement)
+        #                 logging.info(f"Added description for {image_path}")
+        #             else:
+        #                 logging.warning(f"Could not find valid image for {image_path}")
                         
-                except Exception as e:
-                    logging.info(f"Error processing image reference {image_path}: {e}")
-                    logging.error(f"Exception details: {traceback.format_exc()}")
+        #         except Exception as e:
+        #             logging.info(f"Error processing image reference {image_path}: {e}")
+        #             logging.error(f"Exception details: {traceback.format_exc()}")
         
         return markdown_text
 

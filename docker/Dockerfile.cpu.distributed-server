@@ -17,10 +17,12 @@ WORKDIR /app
 COPY ../ ./
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -e .
+# RUN pip install --no-cache-dir -e .
+RUN pip install --no-cache-dir -e . && pip install gunicorn uvicorn
 
 # RUN python -c 'from marker.models import load_all_models; load_all_models()'
 
 EXPOSE 8080
 
-CMD ["python", "distributed_server.py", "--host", "0.0.0.0", "--port", "8080"]
+# CMD ["python", "distributed_server.py", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["sh", "-c", "gunicorn -k uvicorn.workers.UvicornWorker distributed_server:app --bind 0.0.0.0:8080 --timeout ${TIMEOUT:-600}"]

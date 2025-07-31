@@ -38,9 +38,12 @@ logger = logging.getLogger(__name__)
 import os
 import asyncio  # Add this import for the async sleep
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # Get Redis connection details from environment variables with flexible fallbacks
-REDIS_HOST = os.environ.get('REDIS_HOST', 'service-redis-084qf-health')
-REDIS_PORT = os.environ.get('REDIS_PORT', '3000')
+REDIS_HOST = os.environ.get('REDIS_HOST')
+REDIS_PORT = os.environ.get('REDIS_PORT')
 
 # Try multiple possible service names for Redis
 def get_working_broker_url():
@@ -74,7 +77,7 @@ os.environ['CELERY_RESULT_BACKEND'] = os.environ['CELERY_BROKER_URL']
 
 # Define the base URL with health suffix
 APP_SUFFIX = os.environ.get("APP_SUFFIX", "health")
-BASE_URL = f"/qsynthesis/container/marker-api-distributed-lnk3f-{APP_SUFFIX}"
+BASE_URL = f"/qsynthesis/container/marker-api-md8dj-{APP_SUFFIX}"
 logger.info(f"Setting up application with base URL: {BASE_URL}")
 
 # Global variable to hold model list
@@ -162,7 +165,12 @@ async def startup_event():
     
     background_tasks = BackgroundTasks()
     asyncio.create_task(reconnect_celery_workers())
+    celery_alive = check_celery_with_retries(max_retries=2, retry_delay=5)
+    if not celery_alive:
+        logger.warning("Couldn't connect to Celery, setting up routes anyway")
+        celery_alive = True
     
+    setup_routes(app, celery_alive)
     logger.info("Startup tasks scheduled")
 
 

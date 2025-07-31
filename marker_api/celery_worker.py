@@ -1,14 +1,16 @@
 import os
 from celery import Celery
 import logging
+from dotenv import load_dotenv
+load_dotenv()
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Get Redis host
-redis_host = os.environ.get('REDIS_HOST', 'service-redis-084qf-health')
-redis_port = os.environ.get('REDIS_PORT', '3000')
+redis_host = os.environ.get('REDIS_HOST')
+redis_port = os.environ.get('REDIS_PORT')
 
 logger.info(f"Connecting to Redis at {redis_host}:{redis_port}")
 
